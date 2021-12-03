@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vkonex Interview Recorder</title>
+    <link rel="shortcut icon" href="../images/favicon.jpg" />
+</head>
+
+<body style="background-color:rgb(43, 120, 151);">
+
+
+
+
+   <p id="candidate_id" style="display: hidden;">{{id}}</p>
+    <div class="main">
+        <a class="navbar-brand" href="https://www.vkonex.com/"></a>
+
+        <div class="status">
+            <h3 id="status-text" style="color:white">Vkonex Interview & Test assesment</h3><br>
+
+            <hr>
+            <h3 id="status-text"style="color:white">Hi , {{username}}</h3><br>
+        </div>
+
+
+
+        <br>
+        <!--<div style="padding: 50px;">
+            <h3 style="color:white">Questions down here</h3>
+        </div>-->
+        <div class="video-group">
+
+            <div class="groove">
+
+                <p>
+                <h4 style="color: seashell;">Questions will shown here</h4> &nbsp; <h4 style="color: seashell;"
+                    style="background-color: wheat;">Time left =<span style="color: red;"> <span id="timer"></span></h4>
+                <br><br></p>
+
+                <p id="question_text"></p>
+
+            </div>
+
+            <video id="video" width="300" height="250" autoplay muted></video>
+
+
+
+            <!--Video preview-->
+
+            <div class="preview">
+                <video id="preview" width="300" height="250" autoplay loop controls></video>
+            </div>
+
+
+
+        </div><br><br>
+        <div class="btn-group">
+            <button class="btn" id="start" style="cursor:not-allowed;" disabled>Start
+                Interview</button>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <button class="btn2" id="stop" disabled> End Interview </button>
+        </div><br>
+        <h4 style="color:white">
+            <center>** Before starting the interview make sure you have read the important instructions
+        </h4>
+    </div>
+    <br><br><br>
+    <div style="padding: 50px;">
+        <h3 style="color:white">Important Instructions !!</h3><br>
+        <P style="color:white">1 - Please make sure you have proper internet connectivity 5mbps.</P>
+        <P style="color:white"> 2 - Please make sure you have proper light during interview.</P>
+        <P style="color:white">3 - Please make sure your camera and microphone are working properly.</P>
+        <P style="color:white"> 4 - Please make sure you face would be in front of camera.</P>
+        <P style="color:white">5 - You have a minute for each question.</P>
+        <P style="color:white">6 - Questions will automatically skip after a minuite.</P>
+        <P style="color:white">7 - Click on start interview button to start your interview.</P>
+        <P style="color:white">8 - *Third person not allowed during Interview.</P>
+        <P style="color:white">9 - After interview click on end interview button and stay on the page untill it saved.
+        </P>
+        <P style="color:white">8 - *You can give your interview in mobile phone/tablet/laptop/desktop with webcam but it
+            is recomended that please use laptop/desktop.</P>
+        <br><br>
+        <input type="checkbox" id="todo" name="todo" value="todo" required style="color:white">
+
+        <label for="todo" data-content="Get out of bed" style="color:white"> I have read all the instructions,if i will
+            do anythings against then only i am responsible for canacellation of my interview. </label>
+
+    </div>
+    <br><br><br><br>
+    <hr><br><br>
+    <footer>
+        <h4>
+            <center>Copyright 2021 @<span style="color: red;">Vkonex Interview</span>
+        </h4>
+
+    </footer>
+</body>
+<script>
+    var decodeEntities = (function() {
+  // this prevents any overhead from creating the object each time
+  var element = document.createElement('div');
+
+  function decodeHTMLEntities (str) {
+    if(str && typeof str === 'string') {
+      // strip script/html tags
+      str = str.replace(/<script[^>]*>([\S\s]*?)<\/script>/gmi, '');
+      str = str.replace(/<\/?\w(?:[^"'>]|"[^"]*"|'[^']*')*>/gmi, '');
+      element.innerHTML = str;
+      str = element.textContent;
+      element.textContent = '';
+    }
+
+    return str;
+  }
+
+  return decodeHTMLEntities;
+})();
+    </script>
+<script>
+    let time = 120
+    let isCounting = false
+    let curr_index = 0
+    let questions ="{{questions}}";
+    questions = decodeEntities(questions)
+    questions = JSON.parse(questions)
+    console.log(questions)
+    let video = document.querySelector('#video')
+    let preview = document.querySelector('#preview')
+    let start = document.querySelector('#start')
+    let stopBtn = document.querySelector('#stop')
+    let status = document.querySelector('#status-text')
+    let mediaRecorder = null;
+    let cameraStream = null
+    let recordedBlobs = [];
+    navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 }, audio: true }).then((res) => {
+        cameraStream = res
+        video.srcObject = cameraStream;
+    })
+    start.addEventListener('click', async () => {
+        isCounting = true
+        mediaRecorder = new MediaRecorder(cameraStream, { mimeType: 'video/webm' });
+        mediaRecorder.addEventListener('dataavailable', function (e) {
+            recordedBlobs.push(e.data);
+        });
+        mediaRecorder.addEventListener('stop', function () {
+            
+            let video_local = new Blob(recordedBlobs, { type: 'video/mp4' });
+            preview.src = URL.createObjectURL(video_local)
+            let formData = new FormData()
+            let videoFile = new File([video_local], 'test.mp4')
+            let c_id = document.getElementById('candidate_id').textContent
+            
+            formData.append('file', videoFile)
+            status.textContent = 'Finishing the Interview please do not refresh and stay on this window'
+            console.log('Sending data ....')
+            
+            fetch(`https://ec2-52-66-70-230.ap-south-1.compute.amazonaws.com/api/convertTomp4/${c_id}`, {
+
+
+
+                method: 'POST',
+                body: formData,
+            }).then((response) => response.json()).then((data) => {
+                if (data.status) {
+                    status.textContent = "Thank you your Interview our team will reach to you shortly"
+                    time = 120
+                    curr_index++
+                    isCounting = true
+                    // let a = document.createElement('a')
+                    // a.href="/converted.mp4"
+                    // a.download = 'recorded.mp4'
+                    // a.click()
+                }
+            }).catch(err => { console.log("from index.html", err) })
+        });
+        mediaRecorder.start(1000);
+        status.textContent = 'Interview Started'
+        start.setAttribute("disabled", "disabled")
+        stopBtn.removeAttribute("disabled");
+    })
+        
+    stopBtn.addEventListener('click', function () {
+    
+        isCounting = false
+        mediaRecorder.stop();
+        
+        status.textContent = 'Interview Completed'
+        stopBtn.setAttribute("disabled", "disabled")
+        start.removeAttribute("disabled");
+    });
+    document.getElementById('todo').addEventListener('change', (event) => {
+        if (event.target.checked) {
+            start.removeAttribute('disabled')
+            start.style.cursor = 'pointer'
+        } else {
+            start.setAttribute('disabled', 'disabled')
+            start.style.cursor = 'not-allowed'
+        }
+    })
+</script>
+<script>
+    setInterval(countDown,1000)
+    function countDown(){
+        if(!isCounting){
+            return
+        }
+        if(time === 0){
+            curr_index++
+            time = 120
+        }
+        if(curr_index >= questions.length){
+            document.getElementById('question_text').innerHTML = "No more questions"
+            return
+        }
+        document.getElementById('question_text').innerHTML = questions[curr_index]
+        let min = Math.floor(time / 60)
+        let sec = time % 60
+        sec = sec < 10 ? "0"+sec : sec 
+        document.getElementById('timer').innerHTML = min+":"+sec;
+        time--
+    }
+</script>
+<style>
+    *,
+    ::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    .main {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .video-group {
+        padding-top: 50px;
+
+
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+    }
+
+    .preview {
+        position: relative;
+        padding-top: 40px;
+    }
+
+    .preview::after {
+        content: 'Preview';
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        font-color: white;
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    .btn:first-child {
+        margin-right: 10px;
+    }
+
+    .btn {
+        border: none;
+        background: #500a46;
+        color: #ffffff !important;
+        font-weight: 100;
+        padding: 20px;
+        text-transform: uppercase;
+        border-radius: 6px;
+        display: inline-block;
+        transition: all 0.3s ease 0s;
+
+    }
+
+    .btn:hover {
+        color: #fafdfb !important;
+        font-weight: 700 !important;
+        letter-spacing: 3px;
+        background: rgb(0, 128, 28);
+        -webkit-box-shadow: 0px 5px 40px -10px rgba(255, 255, 255, 0.57);
+        -moz-box-shadow: 0px 5px 40px -10px rgba(0, 0, 0, 0.57);
+        transition: all 0.3s ease 0s;
+    }
+
+    .bt2 {
+        border: none;
+        background: #500a46;
+        color: #ffffff !important;
+        font-weight: 100;
+        padding: 20px;
+        text-transform: uppercase;
+        border-radius: 6px;
+        display: inline-block;
+        transition: all 0.3s ease 0s;
+
+    }
+
+    .btn2:hover {
+        color: #fafdfb !important;
+        font-weight: 700 !important;
+        letter-spacing: 3px;
+        background: rgb(172, 7, 15);
+        -webkit-box-shadow: 0px 5px 40px -10px rgba(255, 255, 255, 0.57);
+        -moz-box-shadow: 0px 5px 40px -10px rgba(0, 0, 0, 0.57);
+        transition: all 0.3s ease 0s;
+    }
+
+
+    .btn-group {
+        display: flex;
+        justify-content: center;
+    }
+
+    .status {
+        text-align: center;
+        margin-top: 10px;
+    }
+
+    @media(max-width:600px) {
+        .video-group {
+
+            flex-direction: column;
+
+        }
+    }
+
+    //Question Border
+
+    .groove {
+        border-style: groove;
+    }
+</style>
+
+</html>
